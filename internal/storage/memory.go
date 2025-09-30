@@ -2,6 +2,7 @@ package storage
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -50,4 +51,27 @@ func (s *MemoryStore) List() []*Task {
 		out = append(out, t)
 	}
 	return out
+}
+
+func (m *MemoryStore) UpdateDone(id int64, done bool) (*Task, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	task, ok := m.tasks[id]
+	if !ok {
+		return nil, fmt.Errorf("not found")
+	}
+	task.Done = done
+	return task, nil
+}
+
+func (m *MemoryStore) Delete(id int64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if _, ok := m.tasks[id]; !ok {
+		return fmt.Errorf("not found")
+	}
+	delete(m.tasks, id)
+	return nil
 }

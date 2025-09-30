@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"singularity.com/pz3-http/internal/storage"
 )
@@ -59,6 +60,12 @@ func (h *Handlers) CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	length := utf8.RuneCountInString(req.Title)
+	if length < 5 || length > 140 {
+		UnprocessableEntity(w, "title must be between 5 and 140")
+		return
+	}
+
 	t := h.Store.Create(req.Title)
 	JSON(w, http.StatusCreated, t)
 }
@@ -87,4 +94,45 @@ func (h *Handlers) GetTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	JSON(w, http.StatusOK, t)
+}
+
+func (h *Handlers) PatchTask(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		BadRequest(w, "invalid id")
+		return
+	}
+
+	var body struct {
+		Done bool `json:"done"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		BadRequest(w, "invalid json body")
+		return
+	}
+
+	task, err := h.Store.UpdateDone(int64(id), body.Done)
+	if err != nil {
+		NotFound(w, "task not found")
+		return
+	}
+
+	JSON(w, http.StatusOK, task)
+}
+
+func (h *Handlers) DeleteTask(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		BadRequest(w, "invalid id")
+		return
+	}
+
+	if err := h.Store.Delete(id); err != nil {
+		NotFound(w, "task not found")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent) // 204 без тела
 }

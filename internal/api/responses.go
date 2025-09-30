@@ -26,3 +26,7 @@ func NotFound(w http.ResponseWriter, msg string) {
 func Internal(w http.ResponseWriter, msg string) {
 	JSON(w, http.StatusInternalServerError, ErrorResponse{Error: msg})
 }
+
+func UnprocessableEntity(w http.ResponseWriter, msg string) {
+	JSON(w, http.StatusUnprocessableEntity, ErrorResponse{Error: msg})
+}

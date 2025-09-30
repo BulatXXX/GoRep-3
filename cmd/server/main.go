@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"singularity.com/pz3-http/internal/api"
 	"singularity.com/pz3-http/internal/storage"
@@ -22,12 +23,18 @@ func main() {
 	mux.HandleFunc("GET /tasks", h.ListTasks)
 	mux.HandleFunc("POST /tasks", h.CreateTask)
 	// Элемент
-	mux.HandleFunc("GET /tasks/", h.GetTask)
+	mux.HandleFunc("GET /tasks/{id}", h.GetTask)
+	mux.HandleFunc("PATCH /tasks/{id}", h.PatchTask)
+	mux.HandleFunc("DELETE /tasks/{id}", h.DeleteTask)
 
-	// Подключаем логирование
-	handler := api.Logging(mux)
+	// Подключаем логирование + CORS
+	handler := api.Logging(api.CORS(mux))
 
-	addr := ":8080"
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	addr := ":" + port
 	log.Println("listening on", addr)
 	if err := http.ListenAndServe(addr, handler); err != nil {
 		log.Fatal(err)
